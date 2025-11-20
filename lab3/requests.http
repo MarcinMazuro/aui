@@ -1,0 +1,338 @@
+### Library REST API Tests
+### This file can be used with IntelliJ IDEA HTTP Client or VS Code REST Client
+
+### Variables
+@baseUrl = http://localhost:8080
+@authorId = "399835f9-41c8-4c55-bd41-5ade3353a75f"
+@bookId = "19aa9796-86eb-49dd-8d5a-9b6bd4348dc5"
+
+###############################################################################
+### AUTHOR ENDPOINTS (Categories)
+###############################################################################
+
+### 1. Get all authors (returns list with id and name only)
+GET {{baseUrl}}/api/authors
+Accept: application/json
+
+###
+
+### 2. Create a new author
+POST {{baseUrl}}/api/authors
+Content-Type: application/json
+
+{
+  "name": "J.K. Rowling",
+  "birthDate": "1965-07-31"
+}
+
+###
+
+### 3. Create another author
+POST {{baseUrl}}/api/authors
+Content-Type: application/json
+
+{
+  "name": "George Orwell",
+  "birthDate": "1903-06-25"
+}
+
+###
+
+### 4. Get single author by ID (with full details including books)
+# Replace {authorId} with actual UUID from previous responses
+GET {{baseUrl}}/api/authors/426f09b2-08b0-4760-bb36-981f32f244b7
+Accept: application/json
+
+###
+
+### 5. Update an author
+# Replace {authorId} with actual UUID
+PUT {{baseUrl}}/api/authors/426f09b2-08b0-4760-bb36-981f32f244b7
+Content-Type: application/json
+
+{
+  "name": "George Orwell Updated",
+  "birthDate": "1965-07-31"
+}
+
+###
+
+### 6. Delete an author (will cascade delete all books)
+# Replace {authorId} with actual UUID
+DELETE {{baseUrl}}/api/authors/426f09b2-08b0-4760-bb36-981f32f244b7
+
+###
+
+### 7. Get author that doesn't exist (should return 404)
+GET {{baseUrl}}/api/authors/00000000-0000-0000-0000-000000000000
+Accept: application/json
+
+###
+
+###############################################################################
+### BOOKS IN AUTHOR CONTEXT (Elements in Categories)
+###############################################################################
+
+### 8. Get all books for a specific author
+# Replace {authorId} with actual UUID
+GET {{baseUrl}}/api/authors/8e9469d7-cdf5-4895-bfdf-61ee949d7503/books
+Accept: application/json
+
+###
+
+### 9. Get books from non-existent author (should return 404)
+GET {{baseUrl}}/api/authors/00000000-0000-0000-0000-000000000000/books
+Accept: application/json
+
+###
+
+### 10. Create a book for specific author
+# Replace {authorId} with actual UUID
+POST {{baseUrl}}/api/authors/8e9469d7-cdf5-4895-bfdf-61ee949d7503/books
+Content-Type: application/json
+
+{
+  "title": "Harry Potter and the Philosopher's Stone",
+  "description": "First book in the Harry Potter series",
+  "pages": 223,
+  "publicationYear": 1997
+}
+
+###
+
+### 11. Create another book for same author
+# Replace {authorId} with actual UUID
+POST {{baseUrl}}/api/authors/8e9469d7-cdf5-4895-bfdf-61ee949d7503/books
+Content-Type: application/json
+
+{
+  "title": "Harry Potter and the Chamber of Secrets",
+  "description": "Second book in the Harry Potter series",
+  "pages": 251,
+  "publicationYear": 1998
+}
+
+###
+
+### 12. Try to create book for non-existent author (should return 404)
+POST {{baseUrl}}/api/authors/00000000-0000-0000-0000-000000000000/books
+Content-Type: application/json
+
+{
+  "title": "This should fail",
+  "description": "Author doesn't exist",
+  "pages": 100,
+  "publicationYear": 2024
+}
+
+###
+
+###############################################################################
+### BOOK ENDPOINTS (Direct Element Access)
+###############################################################################
+
+### 13. Get all books (returns list with id and title only)
+GET {{baseUrl}}/api/books
+Accept: application/json
+
+###
+
+### 14. Get single book by ID (with full details including author)
+# Replace {bookId} with actual UUID from previous responses
+GET {{baseUrl}}/api/books/c346218d-85ec-41cc-8c03-7bf56d1dee1a
+Accept: application/json
+
+###
+
+### 15. Update a book
+# Replace {bookId} with actual UUID
+PUT {{baseUrl}}/api/books/c346218d-85ec-41cc-8c03-7bf56d1dee1a
+Content-Type: application/json
+
+{
+  "title": "Harry Potter and the Sorcerer's Stone",
+  "description": "First book in the Harry Potter series (US title)",
+  "pages": -309,
+  "publicationYear": 1997
+}
+
+###
+
+### 16. Delete a book
+# Replace {bookId} with actual UUID
+DELETE {{baseUrl}}/api/books/c346218d-85ec-41cc-8c03-7bf56d1dee1a
+
+###
+
+### 17. Get book that doesn't exist (should return 404)
+GET {{baseUrl}}/api/books/00000000-0000-0000-0000-000000000000
+Accept: application/json
+
+###
+
+### 18. Try to update non-existent book (should return 404)
+PUT {{baseUrl}}/api/books/00000000-0000-0000-0000-000000000000
+Content-Type: application/json
+
+{
+  "title": "This should fail",
+  "description": "Book doesn't exist",
+  "pages": 100,
+  "publicationYear": 2024
+}
+
+###
+
+### 19. Try to delete non-existent book (should return 404)
+DELETE {{baseUrl}}/api/books/00000000-0000-0000-0000-000000000000
+
+###
+
+###############################################################################
+### COMPLETE WORKFLOW TEST
+###############################################################################
+
+### Step 1: Create an author
+POST {{baseUrl}}/api/authors
+Content-Type: application/json
+
+{
+  "name": "Isaac Asimov",
+  "birthDate": "1920-01-02"
+}
+
+> {%
+    client.test("Author created", function() {
+        client.assert(response.status === 201, "Response status is 201");
+    });
+    client.global.set("testAuthorId", response.body.id);
+%}
+
+###
+
+### Step 2: Verify author was created
+GET {{baseUrl}}/api/authors/{{testAuthorId}}
+Accept: application/json
+
+###
+
+### Step 3: Create books for this author
+POST {{baseUrl}}/api/authors/{{testAuthorId}}/books
+Content-Type: application/json
+
+{
+  "title": "Foundation",
+  "description": "First book of the Foundation series",
+  "pages": 1,
+  "publicationYear": 1951
+}
+
+> {%
+    client.global.set("testBookId", response.body.id);
+%}
+
+###
+
+### Step 4: Create another book
+POST {{baseUrl}}/api/authors/{{testAuthorId}}/books
+Content-Type: application/json
+
+{
+  "title": "I, Robot",
+  "description": "Collection of short stories",
+  "pages": 224,
+  "publicationYear": 1950
+}
+
+###
+
+### Step 5: Get all books for this author (should have 2)
+GET {{baseUrl}}/api/authors/{{testAuthorId}}/books
+Accept: application/json
+
+###
+
+### Step 6: Get specific book details
+GET {{baseUrl}}/api/books/{{testBookId}}
+Accept: application/json
+
+###
+
+### Step 7: Update the book
+PUT {{baseUrl}}/api/books/{{testBookId}}
+Content-Type: application/json
+
+{
+  "title": "Foundation (Updated)",
+  "description": "First book of the Foundation series - Updated",
+  "pages": 255,
+  "publicationYear": 1951
+}
+
+###
+
+### Step 8: Delete one book
+DELETE {{baseUrl}}/api/books/{{testBookId}}
+
+###
+
+### Step 9: Verify author still has remaining book
+GET {{baseUrl}}/api/authors/{{testAuthorId}}/books
+Accept: application/json
+
+###
+
+### Step 10: Delete author (should cascade delete remaining books)
+DELETE {{baseUrl}}/api/authors/{{testAuthorId}}
+
+###
+
+### Step 11: Verify author is deleted (should return 404)
+GET {{baseUrl}}/api/authors/{{testAuthorId}}
+Accept: application/json
+
+###
+
+###############################################################################
+### EDGE CASES AND ERROR SCENARIOS
+###############################################################################
+
+### Empty author list (if no authors exist)
+GET {{baseUrl}}/api/authors
+Accept: application/json
+
+###
+
+### Empty books list (if no books exist)
+GET {{baseUrl}}/api/books
+Accept: application/json
+
+###
+
+### Get books from author with no books (should return 200 with empty list)
+# First create an author without books
+POST {{baseUrl}}/api/authors
+Content-Type: application/json
+
+{
+  "name": "New Author",
+  "birthDate": "1990-01-01"
+}
+
+> {%
+    client.global.set("emptyAuthorId", response.body.id);
+%}
+
+###
+
+### Get books from author with no books
+GET {{baseUrl}}/api/authors/{{emptyAuthorId}}/books
+Accept: application/json
+
+###
+
+### Clean up empty author
+DELETE {{baseUrl}}/api/authors/{{emptyAuthorId}}
+
+###
+
